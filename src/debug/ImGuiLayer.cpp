@@ -4,6 +4,7 @@
 #include "backends/imgui_impl_opengl3.h"
 #include "../core/Window.h"
 #include "../core/Application.h"
+#include "../utils/Profiler.h"
 
 ImGuiLayer::ImGuiLayer() {
 }
@@ -16,6 +17,7 @@ void ImGuiLayer::OnAttach() {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
 
     Application& app = Application::Get();
@@ -47,9 +49,37 @@ void ImGuiLayer::End() {
 }
 
 void ImGuiLayer::OnImGuiRender() {
-    ImGui::Begin("Debug");
-    ImGui::Text("CaffeineForest Engine");
+    // Main debug window
+    ImGui::Begin("CaffeineForest Debug");
+    ImGui::Text("Engine Status: Running");
+    ImGui::Separator();
+    
+    // Performance
+    ImGui::Text("Performance");
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+    ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+    
+    ImGui::Separator();
+    
+    // System info
+    ImGui::Text("System");
+    Application& app = Application::Get();
+    ImGui::Text("Window: %dx%d", app.GetWindow().GetWidth(), app.GetWindow().GetHeight());
+    
+    ImGui::Separator();
+    
+    // Controls
+    ImGui::Text("Controls");
+    ImGui::BulletText("ESC: Exit");
+    ImGui::BulletText("WASD: Move (when implemented)");
+    ImGui::BulletText("Mouse: Look around (when implemented)");
+    
     ImGui::End();
+    
+    // Profiler window (if profiling is active)
+    if (ImGui::Begin("Profiler")) {
+        // Add profiler data here when implemented
+        ImGui::Text("Profiler data will appear here");
+        ImGui::End();
+    }
 }
-

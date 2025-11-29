@@ -1,0 +1,80 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cmake --build build --config Release
+    
+    - name: Test (if tests exist)
+      run: |
+        if [ -f build/bin/CaffeineForest ]; then
+          echo "Build successful!"
+        else
+          echo "Build failed - executable not found"
+          exit 1
+        fi
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cmake --build build --config Release
+    
+    - name: Test
+      run: |
+        if (Test-Path build\bin\Release\CaffeineForest.exe) {
+          Write-Host "Build successful!"
+        } else {
+          Write-Host "Build failed"
+          exit 1
+        }
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cmake --build build --config Release
+    
+    - name: Test
+      run: |
+        if [ -f build/bin/CaffeineForest ]; then
+          echo "Build successful!"
+        else
+          echo "Build failed"
+          exit 1
+        fi
+
