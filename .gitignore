@@ -1,0 +1,38 @@
+# Build directories
+build/
+bin/
+lib/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies (if using submodules, keep third_party/)
+third_party/
+extern/
+
+# Assets (if large, consider Git LFS)
+# assets/models/
+# assets/textures/
+
+# Logs
+*.log
+
