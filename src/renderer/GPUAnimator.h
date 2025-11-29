@@ -11,9 +11,12 @@ public:
 
     void UploadBoneMatrices(const std::vector<glm::mat4>& boneMatrices);
     void Bind();
+    void Unbind();
+
+    unsigned int GetSSBO() const { return m_SSBO; }
+    static const int MAX_BONES = 128;
 
 private:
-    unsigned int m_SSBO;
-    static const int MAX_BONES = 128;
+    unsigned int m_SSBO = 0;
 };
 

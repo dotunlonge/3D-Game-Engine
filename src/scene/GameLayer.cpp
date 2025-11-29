@@ -3,6 +3,7 @@
 #include "../core/Application.h"
 #include "../utils/ResourceManager.h"
 #include "../renderer/Renderer.h"
+#include "../core/Logger.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -30,9 +31,27 @@ void GameLayer::OnAttach() {
         "assets/shaders/default.vert", 
         "assets/shaders/default.frag");
     
+    // Load skinned shader for animated models
+    m_SkinnedShader = ResourceManager::LoadShader("skinned", 
+        "assets/shaders/skinned.vert", 
+        "assets/shaders/default.frag");
+    
     // Create test cube
     m_TestCube = std::make_unique<Mesh>(Primitives::CreateCube());
     m_CubeTransform = glm::mat4(1.0f);
+    
+    // Load animated character (uncomment when you have a model)
+    // try {
+    //     m_AnimatedCharacter = std::make_unique<AnimatedModel>("assets/models/character.fbx");
+    //     auto animations = m_AnimatedCharacter->GetAnimations();
+    //     if (!animations.empty()) {
+    //         m_AnimatedCharacter->PlayAnimation(0);
+    //         LOG_INFO("Playing animation: " + animations[0]->GetName());
+    //     }
+    //     m_CharacterTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    // } catch (...) {
+    //     LOG_WARN("Failed to load animated character model");
+    // }
     
     // Create some test entities
     // Entity* entity = m_Scene->CreateEntity();
@@ -73,6 +92,11 @@ void GameLayer::OnUpdate(float deltaTime) {
     float aspect = (float)app.GetWindow().GetWidth() / (float)app.GetWindow().GetHeight();
     m_Camera->SetAspect(aspect);
     
+    // Update animated model
+    // if (m_AnimatedCharacter) {
+    //     m_AnimatedCharacter->Update(deltaTime);
+    // }
+    
     // Update scene
     m_Scene->Update(deltaTime);
 }
@@ -80,7 +104,15 @@ void GameLayer::OnUpdate(float deltaTime) {
 void GameLayer::OnRender() {
     if (!m_DefaultShader || !m_Camera || !m_TestCube) return;
     
-    // Use shader
+    // Render animated character if available
+    // if (m_AnimatedCharacter && m_SkinnedShader) {
+    //     m_SkinnedShader->Bind();
+    //     m_SkinnedShader->SetUniformMat4("uViewProj", m_Camera->GetViewProjectionMatrix());
+    //     m_AnimatedCharacter->Draw(*m_SkinnedShader, m_CharacterTransform);
+    //     m_SkinnedShader->Unbind();
+    // }
+    
+    // Use default shader for static meshes
     m_DefaultShader->Bind();
     
     // Set view-projection matrix
