@@ -1,6 +1,9 @@
 #include "Input.h"
 
 GLFWwindow* Input::s_Window = nullptr;
+glm::vec2 Input::s_LastMousePosition = glm::vec2(0.0f);
+glm::vec2 Input::s_MouseDelta = glm::vec2(0.0f);
+bool Input::s_FirstMouse = true;
 
 bool Input::IsKeyPressed(int keycode) {
     if (!s_Window) return false;
@@ -26,5 +29,40 @@ float Input::GetMouseX() {
 
 float Input::GetMouseY() {
     return GetMousePosition().y;
+}
+
+glm::vec2 Input::GetMouseDelta() {
+    if (!s_Window) return glm::vec2(0.0f);
+    
+    glm::vec2 currentPos = GetMousePosition();
+    
+    if (s_FirstMouse) {
+        s_LastMousePosition = currentPos;
+        s_FirstMouse = false;
+    }
+    
+    s_MouseDelta = currentPos - s_LastMousePosition;
+    s_LastMousePosition = currentPos;
+    
+    return s_MouseDelta;
+}
+
+void Input::SetMouseDelta(float x, float y) {
+    s_MouseDelta = glm::vec2(x, y);
+}
+
+void Input::ResetMouseDelta() {
+    s_MouseDelta = glm::vec2(0.0f);
+    s_FirstMouse = true;
+}
+
+void Input::SetCursorEnabled(bool enabled) {
+    if (!s_Window) return;
+    
+    if (enabled) {
+        glfwSetInputMode(s_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    } else {
+        glfwSetInputMode(s_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 }
 

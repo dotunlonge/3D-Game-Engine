@@ -28,9 +28,9 @@ int main() {
     
     LOG_INFO("Engine initialized. Starting main loop...");
     
-    // Push game layer (example usage - uncomment when ready)
-    // auto gameLayer = std::make_shared<GameLayer>();
-    // app.PushLayer(gameLayer);
+    // Push game layer (example usage)
+    auto gameLayer = std::make_shared<GameLayer>();
+    app.PushLayer(gameLayer);
     
     // Run main loop
     app.Run();

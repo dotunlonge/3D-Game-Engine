@@ -21,6 +21,8 @@ public:
 
     int GetWidth() const { return m_Data.Width; }
     int GetHeight() const { return m_Data.Height; }
+    void SetWidth(int width) { m_Data.Width = width; }
+    void SetHeight(int height) { m_Data.Height = height; }
 
     GLFWwindow* GetNativeWindow() const { return m_Window; }
 
@@ -28,6 +30,8 @@ public:
     void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
 
 private:
+    static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+    
     GLFWwindow* m_Window;
     WindowProps m_Data;
     EventCallbackFn m_EventCallback;

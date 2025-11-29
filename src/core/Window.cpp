@@ -25,9 +25,23 @@ Window::Window(int width, int height, const std::string& title) {
 
     glfwMakeContextCurrent(m_Window);
     glfwSwapInterval(1);
+    
+    // Set user pointer for callbacks
+    glfwSetWindowUserPointer(m_Window, this);
+    
+    // Set framebuffer resize callback
+    glfwSetFramebufferSizeCallback(m_Window, FramebufferSizeCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         LOG_ERROR("Failed to initialize GLAD");
+    }
+}
+
+void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (win) {
+        win->m_Data.Width = width;
+        win->m_Data.Height = height;
     }
 }
 

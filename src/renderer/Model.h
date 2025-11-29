@@ -1,8 +1,11 @@
 #pragma once
 
 #include "Mesh.h"
+#include "../animation/Skeleton.h"
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -13,15 +16,30 @@ public:
     ~Model();
 
     void Draw(Shader& shader);
+    
+    // Skeleton access
+    Skeleton* GetSkeleton() { return m_Skeleton.get(); }
+    const std::unordered_map<std::string, int>& GetBoneMap() const { return m_BoneMap; }
+    int GetBoneCount() const { return m_BoneCounter; }
 
 private:
     void LoadModel(const std::string& path);
     void ProcessNode(aiNode* node, const aiScene* scene);
     Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
     std::vector<Texture> LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
+    
+    // Bone extraction
+    void ExtractBoneWeightsForVertices(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene);
+    void SetVertexBoneData(Vertex& vertex, int boneID, float weight);
+    int GetBoneID(const std::string& boneName);
 
     std::vector<Mesh> m_Meshes;
     std::string m_Directory;
     std::vector<Texture> m_TexturesLoaded;
+    
+    // Skeleton data
+    std::unique_ptr<Skeleton> m_Skeleton;
+    std::unordered_map<std::string, int> m_BoneMap;
+    int m_BoneCounter = 0;
 };
 

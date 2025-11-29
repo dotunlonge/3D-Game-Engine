@@ -3,8 +3,11 @@
 #include <stb_image.h>
 #include <glad/glad.h>
 #include <iostream>
+#include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
 
 Model::Model(const std::string& path) {
+    m_Skeleton = std::make_unique<Skeleton>();
     LoadModel(path);
 }
 
@@ -13,7 +16,12 @@ Model::~Model() {
 
 void Model::LoadModel(const std::string& path) {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(path, 
+        aiProcess_Triangulate | 
+        aiProcess_GenSmoothNormals | 
+        aiProcess_FlipUVs | 
+        aiProcess_CalcTangentSpace |
+        aiProcess_LimitBoneWeights);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         LOG_ERROR("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
@@ -22,6 +30,11 @@ void Model::LoadModel(const std::string& path) {
     m_Directory = path.substr(0, path.find_last_of('/'));
 
     ProcessNode(scene->mRootNode, scene);
+    
+    // Extract skeleton from scene
+    if (scene->HasAnimations()) {
+        LOG_INFO("Model has " + std::to_string(scene->mNumAnimations) + " animation(s)");
+    }
 }
 
 void Model::ProcessNode(aiNode* node, const aiScene* scene) {
@@ -39,6 +52,7 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
 
+    // Process vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         Vertex vertex;
         vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
@@ -49,22 +63,26 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
         }
 
-        // Bone data (if available)
-        if (mesh->HasBones()) {
-            // This is simplified - full implementation would map bone weights
-            vertex.BoneIDs = glm::ivec4(0);
-            vertex.BoneWeights = glm::vec4(0.0f);
-        }
+        // Initialize bone data
+        vertex.BoneIDs = glm::ivec4(0);
+        vertex.BoneWeights = glm::vec4(0.0f);
 
         vertices.push_back(vertex);
     }
 
+    // Process indices
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
         aiFace face = mesh->mFaces[i];
         for (unsigned int j = 0; j < face.mNumIndices; j++)
             indices.push_back(face.mIndices[j]);
     }
 
+    // Extract bone weights
+    if (mesh->HasBones()) {
+        ExtractBoneWeightsForVertices(vertices, mesh, scene);
+    }
+
+    // Process materials
     if (mesh->mMaterialIndex >= 0) {
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
         std::vector<Texture> diffuseMaps = LoadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
@@ -74,6 +92,58 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
     }
 
     return Mesh(vertices, indices, textures);
+}
+
+void Model::ExtractBoneWeightsForVertices(std::vector<Vertex>& vertices, aiMesh* mesh, const aiScene* scene) {
+    for (unsigned int boneIndex = 0; boneIndex < mesh->mNumBones; boneIndex++) {
+        int boneID = -1;
+        std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
+        
+        if (m_BoneMap.find(boneName) == m_BoneMap.end()) {
+            // New bone - add to skeleton
+            aiMatrix4x4 offsetMatrix = mesh->mBones[boneIndex]->mOffsetMatrix;
+            glm::mat4 glmOffsetMatrix;
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    glmOffsetMatrix[i][j] = offsetMatrix[j][i]; // Assimp is row-major, GLM is column-major
+                }
+            }
+            
+            boneID = m_Skeleton->AddBone(boneName, glmOffsetMatrix);
+            m_BoneMap[boneName] = boneID;
+            m_BoneCounter++;
+        } else {
+            boneID = m_BoneMap[boneName];
+        }
+        
+        // Assign weights to vertices
+        aiBone* bone = mesh->mBones[boneIndex];
+        for (unsigned int weightIndex = 0; weightIndex < bone->mNumWeights; weightIndex++) {
+            int vertexID = bone->mWeights[weightIndex].mVertexId;
+            float weight = bone->mWeights[weightIndex].mWeight;
+            SetVertexBoneData(vertices[vertexID], boneID, weight);
+        }
+    }
+}
+
+void Model::SetVertexBoneData(Vertex& vertex, int boneID, float weight) {
+    for (int i = 0; i < 4; i++) {
+        if (vertex.BoneWeights[i] == 0.0f) {
+            vertex.BoneIDs[i] = boneID;
+            vertex.BoneWeights[i] = weight;
+            return;
+        }
+    }
+    // If we get here, vertex already has 4 bones - log warning
+    // In production, you'd want to keep the highest weights
+}
+
+int Model::GetBoneID(const std::string& boneName) {
+    auto it = m_BoneMap.find(boneName);
+    if (it != m_BoneMap.end()) {
+        return it->second;
+    }
+    return -1;
 }
 
 std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {

@@ -61,7 +61,7 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, bool constrainPi
     yoffset *= m_Sensitivity;
 
     m_Yaw += xoffset;
-    m_Pitch += yoffset;
+    m_Pitch -= yoffset; // Reversed since y-coordinates go from bottom to top
 
     if (constrainPitch) {
         if (m_Pitch > 89.0f)
