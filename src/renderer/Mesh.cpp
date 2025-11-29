@@ -1,5 +1,9 @@
 #include "Mesh.h"
+#include "TextureUtils.h"
+#include "../core/Logger.h"
 #include <glad/glad.h>
+
+static unsigned int s_DefaultWhiteTexture = 0;
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
     : m_Vertices(vertices), m_Indices(indices), m_Textures(textures) {
@@ -47,19 +51,35 @@ void Mesh::SetupMesh() {
 void Mesh::Draw(Shader& shader) {
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
+    
+    // Initialize default white texture if needed
+    if (s_DefaultWhiteTexture == 0) {
+        s_DefaultWhiteTexture = TextureUtils::CreateWhiteTexture();
+    }
 
+    bool hasDiffuse = false;
     for (unsigned int i = 0; i < m_Textures.size(); i++) {
         glActiveTexture(GL_TEXTURE0 + i);
         std::string number;
         std::string name = m_Textures[i].type;
-        if (name == "texture_diffuse")
+        if (name == "texture_diffuse") {
             number = std::to_string(diffuseNr++);
-        else if (name == "texture_specular")
+            hasDiffuse = true;
+        } else if (name == "texture_specular") {
             number = std::to_string(specularNr++);
+        }
 
         shader.SetUniform1i((name + number).c_str(), i);
         glBindTexture(GL_TEXTURE_2D, m_Textures[i].id);
     }
+    
+    // If no diffuse texture, use white texture
+    if (!hasDiffuse && m_Textures.empty()) {
+        glActiveTexture(GL_TEXTURE0);
+        shader.SetUniform1i("uTexture", 0);
+        glBindTexture(GL_TEXTURE_2D, s_DefaultWhiteTexture);
+    }
+    
     glActiveTexture(GL_TEXTURE0);
 
     glBindVertexArray(m_VAO);

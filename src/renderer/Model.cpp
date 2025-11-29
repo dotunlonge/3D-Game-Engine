@@ -1,12 +1,16 @@
 #include "Model.h"
 #include "../core/Logger.h"
+#include "../renderer/Texture.h"
+#include "../animation/AnimationLoader.h"
 #include <stb_image.h>
 #include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 
 Model::Model(const std::string& path) {
+    m_FilePath = path;
     m_Skeleton = std::make_unique<Skeleton>();
     LoadModel(path);
 }
@@ -31,9 +35,10 @@ void Model::LoadModel(const std::string& path) {
 
     ProcessNode(scene->mRootNode, scene);
     
-    // Extract skeleton from scene
+    // Extract animations from scene
     if (scene->HasAnimations()) {
         LOG_INFO("Model has " + std::to_string(scene->mNumAnimations) + " animation(s)");
+        m_Animations = AnimationLoader::LoadAnimationsFromScene(scene);
     }
 }
 
@@ -151,28 +156,71 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType 
     for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
         aiString str;
         mat->GetTexture(type, i, &str);
+        
+        // Check if texture already loaded
         bool skip = false;
+        std::string texturePath = GetFullPath(str.C_Str());
+        
         for (unsigned int j = 0; j < m_TexturesLoaded.size(); j++) {
-            if (std::strcmp(m_TexturesLoaded[j].path.data(), str.C_Str()) == 0) {
+            if (m_TexturesLoaded[j].path == texturePath) {
                 textures.push_back(m_TexturesLoaded[j]);
                 skip = true;
                 break;
             }
         }
+        
         if (!skip) {
-            Texture texture;
-            texture.id = 0; // Load texture using stb_image
-            texture.type = typeName;
-            texture.path = str.C_Str();
-            textures.push_back(texture);
-            m_TexturesLoaded.push_back(texture);
+            // Try to load texture
+            std::ifstream file(texturePath);
+            if (file.good()) {
+                file.close();
+                try {
+                    // Load texture using Texture class
+                    auto textureObj = std::make_unique<class Texture>(texturePath);
+                    unsigned int textureID = textureObj->GetID();
+                    
+                    if (textureID != 0) {
+                        // Store texture object to keep it alive
+                        m_TextureObjects.push_back(std::move(textureObj));
+                        
+                        // Create Mesh::Texture struct
+                        Texture meshTexture;
+                        meshTexture.id = textureID;
+                        meshTexture.type = typeName;
+                        meshTexture.path = texturePath;
+                        textures.push_back(meshTexture);
+                        m_TexturesLoaded.push_back(meshTexture);
+                    } else {
+                        LOG_WARN("Failed to load texture (ID=0): " + texturePath);
+                    }
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Exception loading texture: " + texturePath + " - " + e.what());
+                } catch (...) {
+                    LOG_ERROR("Unknown error loading texture: " + texturePath);
+                }
+            } else {
+                LOG_WARN("Texture file not found: " + texturePath);
+            }
         }
     }
     return textures;
 }
 
+std::string Model::GetFullPath(const std::string& path) {
+    // If path is absolute, return as-is
+    if (path[0] == '/' || (path.length() > 1 && path[1] == ':')) {
+        return path;
+    }
+    // Otherwise, prepend directory
+    return m_Directory + "/" + path;
+}
+
 void Model::Draw(Shader& shader) {
     for (unsigned int i = 0; i < m_Meshes.size(); i++)
         m_Meshes[i].Draw(shader);
+}
+
+std::vector<std::shared_ptr<AnimationClip>> Model::GetAnimations() const {
+    return m_Animations;
 }
 
