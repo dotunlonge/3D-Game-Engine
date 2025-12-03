@@ -2,6 +2,7 @@
 #include "../core/Logger.h"
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <glad/glad.h>
 
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) {
@@ -44,9 +45,26 @@ unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
     if (result == GL_FALSE) {
         int length;
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char* message = (char*)alloca(length * sizeof(char));
-        glGetShaderInfoLog(id, length, &length, message);
-        LOG_ERROR("Failed to compile " + std::string(type == GL_VERTEX_SHADER ? "vertex" : "fragment") + " shader: " + std::string(message));
+        std::vector<char> message(length);
+        glGetShaderInfoLog(id, length, &length, message.data());
+        
+        std::string shaderType = (type == GL_VERTEX_SHADER ? "vertex" : 
+                                 type == GL_FRAGMENT_SHADER ? "fragment" : 
+                                 type == GL_GEOMETRY_SHADER ? "geometry" : "unknown");
+        
+        LOG_ERROR("Failed to compile " + shaderType + " shader:");
+        LOG_ERROR(std::string(message.data()));
+        
+        // Print source lines for context
+        std::istringstream stream(source);
+        std::string line;
+        int lineNum = 1;
+        LOG_ERROR("Shader source:");
+        while (std::getline(stream, line) && lineNum <= 20) { // Show first 20 lines
+            LOG_ERROR("  " + std::to_string(lineNum) + ": " + line);
+            lineNum++;
+        }
+        
         glDeleteShader(id);
         return 0;
     }
@@ -57,11 +75,49 @@ unsigned int Shader::CreateShader(const std::string& vertexSource, const std::st
     unsigned int program = glCreateProgram();
     unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSource);
     unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSource);
+    
+    if (vs == 0 || fs == 0) {
+        LOG_ERROR("Failed to compile shaders, cannot create program");
+        if (vs != 0) glDeleteShader(vs);
+        if (fs != 0) glDeleteShader(fs);
+        glDeleteProgram(program);
+        return 0;
+    }
 
     glAttachShader(program, vs);
     glAttachShader(program, fs);
     glLinkProgram(program);
+    
+    // Check linking
+    int linkSuccess;
+    glGetProgramiv(program, GL_LINK_STATUS, &linkSuccess);
+    if (!linkSuccess) {
+        int length;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+        std::vector<char> message(length);
+        glGetProgramInfoLog(program, length, &length, message.data());
+        LOG_ERROR("Failed to link shader program:");
+        LOG_ERROR(std::string(message.data()));
+        
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        glDeleteProgram(program);
+        return 0;
+    }
+    
     glValidateProgram(program);
+    
+    // Check validation
+    int validateSuccess;
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &validateSuccess);
+    if (!validateSuccess) {
+        int length;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+        std::vector<char> message(length);
+        glGetProgramInfoLog(program, length, &length, message.data());
+        LOG_WARN("Shader program validation warning:");
+        LOG_WARN(std::string(message.data()));
+    }
 
     glDeleteShader(vs);
     glDeleteShader(fs);

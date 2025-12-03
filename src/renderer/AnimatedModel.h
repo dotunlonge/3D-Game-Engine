@@ -23,6 +23,12 @@ public:
     void StopAnimation();
     bool IsAnimating() const { return m_Animator && m_CurrentAnimationIndex >= 0; }
     
+    // Blending support
+    void CrossFadeTo(int animationIndex, float fadeTime = 0.3f);
+    void CrossFadeTo(const std::string& name, float fadeTime = 0.3f);
+    int AddAnimationLayer(int animationIndex, float weight = 1.0f);
+    void SetLayerWeight(int layerID, float weight);
+    
     // Getters
     Model* GetModel() { return m_Model.get(); }
     Animator* GetAnimator() { return m_Animator.get(); }

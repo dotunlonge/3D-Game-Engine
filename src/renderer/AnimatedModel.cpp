@@ -103,3 +103,33 @@ std::vector<std::shared_ptr<AnimationClip>> AnimatedModel::GetAnimations() const
     return m_Animations;
 }
 
+void AnimatedModel::CrossFadeTo(int animationIndex, float fadeTime) {
+    if (!m_Animator || animationIndex < 0 || animationIndex >= (int)m_Animations.size()) {
+        return;
+    }
+    m_Animator->CrossFadeTo(m_Animations[animationIndex], fadeTime);
+    m_CurrentAnimationIndex = animationIndex;
+}
+
+void AnimatedModel::CrossFadeTo(const std::string& name, float fadeTime) {
+    for (size_t i = 0; i < m_Animations.size(); i++) {
+        if (m_Animations[i]->GetName() == name) {
+            CrossFadeTo((int)i, fadeTime);
+            return;
+        }
+    }
+}
+
+int AnimatedModel::AddAnimationLayer(int animationIndex, float weight) {
+    if (!m_Animator || animationIndex < 0 || animationIndex >= (int)m_Animations.size()) {
+        return -1;
+    }
+    return m_Animator->AddAnimationLayer(m_Animations[animationIndex], weight);
+}
+
+void AnimatedModel::SetLayerWeight(int layerID, float weight) {
+    if (m_Animator) {
+        m_Animator->SetLayerWeight(layerID, weight);
+    }
+}
+
