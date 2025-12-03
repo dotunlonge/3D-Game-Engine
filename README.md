@@ -1,6 +1,6 @@
 # CaffeineForest
 
-> **A 100% C++ handcrafted game engine** featuring skeletal animation, GPU skinning, instanced forest rendering, and Bullet physics integration.
+> **A 100% C++ game engine** featuring skeletal animation, GPU skinning, instanced forest rendering, and Bullet physics integration.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![C++](https://img.shields.io/badge/C++-17/20-blue)]()
@@ -9,12 +9,21 @@
 ## 🎮 Features
 
 - **Modern C++ Renderer** - OpenGL 4.5 core profile, deferred rendering pipeline
-- **Skeletal Animation** - CPU and GPU-based skinning with animation blending
+- **Skeletal Animation** - Complete CPU and GPU-based skinning system
+  - Bone weight extraction from Assimp
+  - Keyframe interpolation (position, rotation, scale)
+  - GPU skinning via SSBO (Shader Storage Buffer Object)
+  - Animation loading from model files
+  - Animation blending (multiple layers)
+  - Crossfade transitions
+  - Animation state machine for character controllers
 - **Instanced Foliage** - Efficient forest rendering with LOD and frustum culling
-- **Physics Integration** - Bullet Physics for collisions and character controllers
+- **Physics Integration** - Bullet Physics wrapper (ready for integration)
 - **Asset Pipeline** - Assimp-based model loading with full bone hierarchy support
+- **Texture System** - Automatic texture loading with fallback to white texture
 - **Debug UI** - ImGui integration for real-time engine inspection
 - **Resource Management** - Hot-reloadable shaders and efficient asset caching
+- **Primitive Generation** - Built-in cube, sphere, plane, quad generators
 
 ## 🏗️ Architecture
 
@@ -82,13 +91,16 @@ Optional (for future features):
 - [x] Core window and input systems
 - [x] Basic renderer with shader support
 - [x] Model loading via Assimp
-- [ ] Camera controller (free-fly and third-person)
-- [ ] CPU skeletal animation
-- [ ] GPU skinning with SSBO
+- [x] Camera controller (free-fly with mouse look)
+- [x] CPU skeletal animation with keyframe interpolation
+- [x] GPU skinning with SSBO
+- [x] Animation loading from model files
+- [x] Texture loading with fallback system
+- [x] Primitive mesh generation
+- [x] Animation blending and state machine
 - [ ] Bullet Physics integration
 - [ ] Instanced foliage rendering
 - [ ] Terrain system
-- [ ] Animation blending and state machine
 - [ ] PBR rendering pipeline
 - [ ] Shadow mapping
 - [ ] SSAO
