@@ -133,13 +133,3 @@ Contributions welcome! Please:
 ## 📝 License
 
 MIT License - see LICENSE file for details
-
-## 🙏 Acknowledgments
-
-Built with passion and caffeine. No engine shortcuts—everything from scratch.
-
----
-
-**Made by someone who wanted to suffer through building a game engine in C++** ☕
-
-# 3D-Game-2
