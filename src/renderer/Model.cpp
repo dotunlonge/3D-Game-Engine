@@ -19,6 +19,11 @@ Model::~Model() {
 }
 
 void Model::LoadModel(const std::string& path) {
+    if (path.empty()) {
+        LOG_ERROR("Model::LoadModel: Empty path provided");
+        return;
+    }
+    
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, 
         aiProcess_Triangulate | 
@@ -27,18 +32,43 @@ void Model::LoadModel(const std::string& path) {
         aiProcess_CalcTangentSpace |
         aiProcess_LimitBoneWeights);
 
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        LOG_ERROR("ERROR::ASSIMP:: " + std::string(importer.GetErrorString()));
+    if (!scene) {
+        LOG_ERROR("Model::LoadModel: Failed to load model from '" + path + "'");
+        LOG_ERROR("Assimp error: " + std::string(importer.GetErrorString()));
         return;
     }
-    m_Directory = path.substr(0, path.find_last_of('/'));
+    
+    if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
+        LOG_WARN("Model::LoadModel: Scene is incomplete (some data may be missing)");
+    }
+    
+    if (!scene->mRootNode) {
+        LOG_ERROR("Model::LoadModel: Scene has no root node");
+        return;
+    }
+    
+    // Extract directory
+    size_t lastSlash = path.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        m_Directory = path.substr(0, lastSlash);
+    } else {
+        m_Directory = ".";
+    }
 
+    LOG_INFO("Model::LoadModel: Loading model from '" + path + "'");
     ProcessNode(scene->mRootNode, scene);
+    
+    LOG_INFO("Model::LoadModel: Loaded " + std::to_string(m_Meshes.size()) + " mesh(es)");
     
     // Extract animations from scene
     if (scene->HasAnimations()) {
-        LOG_INFO("Model has " + std::to_string(scene->mNumAnimations) + " animation(s)");
+        LOG_INFO("Model::LoadModel: Found " + std::to_string(scene->mNumAnimations) + " animation(s)");
         m_Animations = AnimationLoader::LoadAnimationsFromScene(scene);
+    }
+    
+    // Log skeleton info
+    if (m_Skeleton && m_Skeleton->GetBoneCount() > 0) {
+        LOG_INFO("Model::LoadModel: Skeleton has " + std::to_string(m_Skeleton->GetBoneCount()) + " bone(s)");
     }
 }
 
